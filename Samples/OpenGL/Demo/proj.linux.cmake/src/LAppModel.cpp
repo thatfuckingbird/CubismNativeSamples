@@ -78,7 +78,7 @@ LAppModel::~LAppModel()
     delete(_modelSetting);
 }
 
-void LAppModel::LoadAssets(const csmChar* dir, const csmChar* fileName)
+csmBool LAppModel::LoadAssets(const csmChar* dir, const csmChar* fileName)
 {
     _modelHomeDir = dir;
 
@@ -91,18 +91,25 @@ void LAppModel::LoadAssets(const csmChar* dir, const csmChar* fileName)
     const csmString path = csmString(dir) + fileName;
 
     csmByte* buffer = CreateBuffer(path.GetRawString(), &size);
+    if(size == 0) {
+        DeleteBuffer(buffer, path.GetRawString());
+        return false;
+    }
+
     ICubismModelSetting* setting = new CubismModelSettingJson(buffer, size);
     DeleteBuffer(buffer, path.GetRawString());
 
-    SetupModel(setting);
+    if (!SetupModel(setting)) return false;
 
     CreateRenderer();
 
     SetupTextures();
+
+    return true;
 }
 
 
-void LAppModel::SetupModel(ICubismModelSetting* setting)
+Csm::csmBool LAppModel::SetupModel(ICubismModelSetting* setting)
 {
     _updating = true;
     _initialized = false;
@@ -124,8 +131,15 @@ void LAppModel::SetupModel(ICubismModelSetting* setting)
         }
 
         buffer = CreateBuffer(path.GetRawString(), &size);
-        LoadModel(buffer, size);
-        DeleteBuffer(buffer, path.GetRawString());
+        if(size != 0) {
+            LoadModel(buffer, size);
+            DeleteBuffer(buffer, path.GetRawString());
+        } else {
+            DeleteBuffer(buffer, path.GetRawString());
+            return false;
+        }
+    } else {
+        return false;
     }
 
     //Expression
@@ -139,6 +153,8 @@ void LAppModel::SetupModel(ICubismModelSetting* setting)
             path = _modelHomeDir + path;
 
             buffer = CreateBuffer(path.GetRawString(), &size);
+            if(size == 0) continue;
+
             ACubismMotion* motion = LoadExpression(buffer, size, name.GetRawString());
 
             if (_expressions[name] != NULL)
@@ -159,8 +175,10 @@ void LAppModel::SetupModel(ICubismModelSetting* setting)
         path = _modelHomeDir + path;
 
         buffer = CreateBuffer(path.GetRawString(), &size);
-        LoadPhysics(buffer, size);
-        DeleteBuffer(buffer, path.GetRawString());
+        if(size != 0) {
+            LoadPhysics(buffer, size);
+            DeleteBuffer(buffer, path.GetRawString());
+        }
     }
 
     //Pose
@@ -170,8 +188,10 @@ void LAppModel::SetupModel(ICubismModelSetting* setting)
         path = _modelHomeDir + path;
 
         buffer = CreateBuffer(path.GetRawString(), &size);
-        LoadPose(buffer, size);
-        DeleteBuffer(buffer, path.GetRawString());
+        if(size != 0) {
+            LoadPose(buffer, size);
+            DeleteBuffer(buffer, path.GetRawString());
+        }
     }
 
     //EyeBlink
@@ -201,8 +221,10 @@ void LAppModel::SetupModel(ICubismModelSetting* setting)
         csmString path = _modelSetting->GetUserDataFile();
         path = _modelHomeDir + path;
         buffer = CreateBuffer(path.GetRawString(), &size);
-        LoadUserData(buffer, size);
-        DeleteBuffer(buffer, path.GetRawString());
+        if(size != 0) {
+            LoadUserData(buffer, size);
+            DeleteBuffer(buffer, path.GetRawString());
+        }
     }
 
     // EyeBlinkIds
@@ -240,9 +262,11 @@ void LAppModel::SetupModel(ICubismModelSetting* setting)
 
     _updating = false;
     _initialized = true;
+
+    return true;
 }
 
-void LAppModel::PreloadMotionGroup(const csmChar* group)
+csmBool LAppModel::PreloadMotionGroup(const csmChar* group)
 {
     const csmInt32 count = _modelSetting->GetMotionCount(group);
 
@@ -261,6 +285,11 @@ void LAppModel::PreloadMotionGroup(const csmChar* group)
         csmByte* buffer;
         csmSizeInt size;
         buffer = CreateBuffer(path.GetRawString(), &size);
+        if(size == 0) {
+            DeleteBuffer(buffer, path.GetRawString());
+            return false;
+        }
+
         CubismMotion* tmpMotion = static_cast<CubismMotion*>(LoadMotion(buffer, size, name.GetRawString()));
 
         csmFloat32 fadeTime = _modelSetting->GetMotionFadeInTimeValue(group, i);
@@ -284,6 +313,8 @@ void LAppModel::PreloadMotionGroup(const csmChar* group)
 
         DeleteBuffer(buffer, path.GetRawString());
     }
+
+    return true;
 }
 
 void LAppModel::ReleaseMotionGroup(const csmChar* group) const
@@ -447,6 +478,8 @@ CubismMotionQueueEntryHandle LAppModel::StartMotion(const csmChar* group, csmInt
         csmByte* buffer;
         csmSizeInt size;
         buffer = CreateBuffer(path.GetRawString(), &size);
+        if(size == 0) goto end;
+
         motion = static_cast<CubismMotion*>(LoadMotion(buffer, size, NULL, onFinishedMotionHandler));
         csmFloat32 fadeTime = _modelSetting->GetMotionFadeInTimeValue(group, no);
         if (fadeTime >= 0.0f)
@@ -462,6 +495,7 @@ CubismMotionQueueEntryHandle LAppModel::StartMotion(const csmChar* group, csmInt
         motion->SetEffectIds(_eyeBlinkIds, _lipSyncIds);
         autoDelete = true; // 終了時にメモリから削除
 
+end:
         DeleteBuffer(buffer, path.GetRawString());
     }
     else

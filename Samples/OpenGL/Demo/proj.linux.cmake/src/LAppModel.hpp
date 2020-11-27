@@ -37,7 +37,7 @@ public:
      * @brief model3.jsonが置かれたディレクトリとファイルパスからモデルを生成する
      *
      */
-    void LoadAssets(const Csm::csmChar* dir, const  Csm::csmChar* fileName);
+    Csm::csmBool LoadAssets(const Csm::csmChar* dir, const  Csm::csmChar* fileName);
 
     /**
      * @brief レンダラを再構築する
@@ -128,7 +128,7 @@ private:
      * @param[in]   setting     ICubismModelSettingのインスタンス
      *
      */
-    void SetupModel(Csm::ICubismModelSetting* setting);
+    Csm::csmBool SetupModel(Csm::ICubismModelSetting* setting);
 
     /**
      * @brief OpenGLのテクスチャユニットにテクスチャをロードする
@@ -142,7 +142,7 @@ private:
      *
      * @param[in]   group  モーションデータのグループ名
      */
-    void PreloadMotionGroup(const Csm::csmChar* group);
+    Csm::csmBool PreloadMotionGroup(const Csm::csmChar* group);
 
     /**
      * @brief   モーションデータをグループ名から一括で解放する。<br>
