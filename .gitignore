@@ -5,6 +5,7 @@
 /Core/**/*.dylib
 /Core/**/*.lib
 /Core/**/*.so
+/Core/**/*.h
 
 # Sample build directories
 /Samples/**/build/
